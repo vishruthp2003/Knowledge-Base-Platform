@@ -14,13 +14,254 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          parent_comment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          document_id: string
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_mentions: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          is_read: boolean
+          mention_context: string | null
+          mentioned_by: string
+          mentioned_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          is_read?: boolean
+          mention_context?: string | null
+          mentioned_by: string
+          mentioned_user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          is_read?: boolean
+          mention_context?: string | null
+          mentioned_by?: string
+          mentioned_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_mentions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_shares: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          permission: string
+          shared_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          permission: string
+          shared_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          permission?: string
+          shared_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_shares_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string
+          document_id: string
+          id: string
+          title: string
+          version_number: number
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by: string
+          document_id: string
+          id?: string
+          title: string
+          version_number: number
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          id?: string
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          author_id: string
+          content: Json
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_public: boolean
+          last_edited_by: string | null
+          parent_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content?: Json
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_public?: boolean
+          last_edited_by?: string | null
+          parent_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: Json
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_public?: boolean
+          last_edited_by?: string | null
+          parent_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_document_permission: {
+        Args: { doc_id: string; user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
