@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,68 +27,195 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data - will be replaced with Supabase data
-const mockDocuments = [
-  {
-    id: "1",
-    title: "Project Documentation",
-    description: "Complete guide for the new project implementation",
-    author: "John Doe",
-    lastModified: "2 hours ago",
-    isPublic: true,
-    collaborators: 5,
-    version: "1.2"
-  },
-  {
-    id: "2",
-    title: "API Reference",
-    description: "REST API endpoints and authentication guide",
-    author: "Jane Smith",
-    lastModified: "1 day ago",
-    isPublic: false,
-    collaborators: 3,
-    version: "2.1"
-  },
-  {
-    id: "3",
-    title: "Team Guidelines",
-    description: "Best practices and coding standards for our team",
-    author: "Mike Johnson",
-    lastModified: "3 days ago",
-    isPublic: true,
-    collaborators: 8,
-    version: "1.0"
-  }
-];
+interface Document {
+  id: string;
+  title: string;
+  summary: string | null;
+  author_id: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  author: {
+    full_name: string;
+    username: string;
+  };
+}
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentUser] = useState({ 
-    name: "Current User", 
-    email: "user@example.com",
-    avatar: "" 
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalDocuments: 0,
+    collaborators: 0,
+    publicDocs: 0,
+    recentActivity: 0
   });
+  
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleCreateDocument = () => {
-    // TODO: Navigate to document editor
-    console.log("Create new document");
+  useEffect(() => {
+    fetchDocuments();
+    fetchStats();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select(`
+          id,
+          title,
+          summary,
+          author_id,
+          is_public,
+          created_at,
+          updated_at
+        `)
+        .order('updated_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching documents:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load documents",
+        });
+        return;
+      }
+
+      // Transform data to match our interface
+      const transformedData = data?.map(doc => ({
+        ...doc,
+        author: {
+          full_name: 'User',
+          username: 'user'
+        }
+      })) || [];
+
+      setDocuments(transformedData);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Get total documents count
+      const { count: totalDocs } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true });
+
+      // Get public documents count
+      const { count: publicDocs } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_public', true);
+
+      // Get unique collaborators count (users who have shares)
+      const { data: collaboratorsData } = await supabase
+        .from('document_shares')
+        .select('user_id');
+
+      const uniqueCollaborators = new Set(collaboratorsData?.map(s => s.user_id)).size;
+
+      setStats({
+        totalDocuments: totalDocs || 0,
+        collaborators: uniqueCollaborators,
+        publicDocs: publicDocs || 0,
+        recentActivity: 0 // This would require more complex query for recent edits
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const handleCreateDocument = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          title: 'Untitled Document',
+          content: { type: 'doc', content: [] },
+          author_id: user?.id,
+          summary: 'New document'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to create document",
+        });
+        return;
+      }
+
+      toast({
+        title: "Document created!",
+        description: "Your new document is ready to edit.",
+      });
+
+      navigate(`/editor/${data.id}`);
+    } catch (error) {
+      console.error('Error creating document:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred",
+      });
+    }
   };
 
   const handleDocumentClick = (documentId: string) => {
-    // TODO: Navigate to document viewer/editor
-    console.log("Open document:", documentId);
+    navigate(`/editor/${documentId}`);
   };
 
-  const handleLogout = () => {
-    // TODO: Implement logout
-    console.log("Logout");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
-  const filteredDocuments = mockDocuments.filter(doc =>
+  const filteredDocuments = documents.filter(doc =>
     doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.description.toLowerCase().includes(searchQuery.toLowerCase())
+    (doc.summary && doc.summary.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 1440) {
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    } else {
+      return `${Math.floor(diffInMinutes / 1440)} days ago`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,17 +249,17 @@ const Dashboard = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                    <AvatarFallback>{currentUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.full_name || user?.email} />
+                    <AvatarFallback>{user?.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('') || user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-background" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+                    <p className="text-sm font-medium leading-none">{user?.user_metadata?.full_name || user?.email}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {currentUser.email}
+                      {user?.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -170,8 +298,8 @@ const Dashboard = () => {
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24</div>
-                <p className="text-xs text-muted-foreground">+2 from last week</p>
+                <div className="text-2xl font-bold">{stats.totalDocuments}</div>
+                <p className="text-xs text-muted-foreground">Total in your workspace</p>
               </CardContent>
             </Card>
             <Card>
@@ -180,8 +308,8 @@ const Dashboard = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">+1 new this week</p>
+                <div className="text-2xl font-bold">{stats.collaborators}</div>
+                <p className="text-xs text-muted-foreground">Active contributors</p>
               </CardContent>
             </Card>
             <Card>
@@ -190,8 +318,8 @@ const Dashboard = () => {
                 <Globe className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">8</div>
-                <p className="text-xs text-muted-foreground">33% of total</p>
+                <div className="text-2xl font-bold">{stats.publicDocs}</div>
+                <p className="text-xs text-muted-foreground">Publicly accessible</p>
               </CardContent>
             </Card>
             <Card>
@@ -200,8 +328,8 @@ const Dashboard = () => {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5</div>
-                <p className="text-xs text-muted-foreground">edits today</p>
+                <div className="text-2xl font-bold">{stats.recentActivity}</div>
+                <p className="text-xs text-muted-foreground">Recent updates</p>
               </CardContent>
             </Card>
           </div>
@@ -233,10 +361,10 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <CardTitle className="text-lg">{doc.title}</CardTitle>
-                        <CardDescription>{doc.description}</CardDescription>
+                        <CardDescription>{doc.summary || 'No description'}</CardDescription>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {doc.isPublic ? (
+                        {doc.is_public ? (
                           <Badge variant="secondary">
                             <Globe className="h-3 w-3 mr-1" />
                             Public
@@ -247,21 +375,16 @@ const Dashboard = () => {
                             Private
                           </Badge>
                         )}
-                        <Badge variant="outline">v{doc.version}</Badge>
+                        <Badge variant="outline">v1.0</Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <div className="flex items-center space-x-4">
-                        <span>By {doc.author}</span>
+                        <span>By {doc.author.full_name}</span>
                         <span>•</span>
-                        <span>{doc.lastModified}</span>
-                        <span>•</span>
-                        <span className="flex items-center">
-                          <Users className="h-3 w-3 mr-1" />
-                          {doc.collaborators} collaborators
-                        </span>
+                        <span>{formatDate(doc.updated_at)}</span>
                       </div>
                     </div>
                   </CardContent>
