@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,44 +34,128 @@ import {
   AlignRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDocument } from "@/hooks/useDocument";
+import { ShareDialog } from "@/components/ShareDialog";
+import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
+import { formatDistanceToNow } from "date-fns";
 
 const DocumentEditor = () => {
   const navigate = useNavigate();
-  const [title, setTitle] = useState("Untitled Document");
-  const [content, setContent] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState("Just now");
+  const { document, loading, saving, lastSaved, saveDocument, toggleVisibility } = useDocument();
+  const [localTitle, setLocalTitle] = useState("");
+  const [localContent, setLocalContent] = useState("");
 
-  // Mock collaborators
+  // Mock collaborators - you can implement real-time collaboration later
   const collaborators = [
     { id: "1", name: "John Doe", avatar: "", online: true },
     { id: "2", name: "Jane Smith", avatar: "", online: true },
     { id: "3", name: "Mike Johnson", avatar: "", online: false },
   ];
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    // TODO: Implement auto-save with Supabase
-    setTimeout(() => {
-      setIsSaving(false);
-      setLastSaved("Just now");
-    }, 1000);
-  };
+  // Sync local state with document
+  useEffect(() => {
+    if (document) {
+      setLocalTitle(document.title);
+      // Handle content - if it's structured data, extract text
+      if (typeof document.content === 'string') {
+        setLocalContent(document.content);
+      } else if (document.content && typeof document.content === 'object') {
+        // Extract text from structured content
+        const extractText = (content: any): string => {
+          if (typeof content === 'string') return content;
+          if (content.content && Array.isArray(content.content)) {
+            return content.content
+              .map((node: any) => {
+                if (node.type === 'paragraph' && node.content) {
+                  return node.content.map((text: any) => text.text || '').join('');
+                }
+                return '';
+              })
+              .join('\n');
+          }
+          return '';
+        };
+        setLocalContent(extractText(document.content));
+      } else {
+        setLocalContent('');
+      }
+    }
+  }, [document]);
 
-  const handleShare = () => {
-    // TODO: Open share dialog
-    console.log("Open share dialog");
+  // Auto-save functionality
+  useEffect(() => {
+    if (!document || saving) return;
+
+    const autoSaveTimer = setTimeout(() => {
+      if (localTitle !== document.title || localContent !== (typeof document.content === 'string' ? document.content : '')) {
+        handleSave();
+      }
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [localTitle, localContent, document, saving]);
+
+  const handleSave = async () => {
+    if (!document) return;
+    
+    // Convert plain text to structured content
+    const structuredContent = {
+      type: 'doc',
+      content: localContent.split('\n').map(line => ({
+        type: 'paragraph',
+        content: [{ type: 'text', text: line }]
+      }))
+    };
+
+    await saveDocument(localTitle, structuredContent);
   };
 
   const handleBack = () => {
     navigate("/dashboard");
   };
 
-  const handleToggleVisibility = () => {
-    setIsPublic(!isPublic);
-    // TODO: Update document visibility in database
+  const handleRestore = async (title: string, content: any) => {
+    await saveDocument(title, content);
+    setLocalTitle(title);
+    // Extract text for local editing
+    if (typeof content === 'string') {
+      setLocalContent(content);
+    } else if (content && content.content && Array.isArray(content.content)) {
+      const textContent = content.content
+        .map((node: any) => {
+          if (node.type === 'paragraph' && node.content) {
+            return node.content.map((text: any) => text.text || '').join('');
+          }
+          return '';
+        })
+        .join('\n');
+      setLocalContent(textContent);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading document...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!document) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p>Document not found</p>
+          <Button onClick={handleBack} className="mt-4">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,16 +168,21 @@ const DocumentEditor = () => {
             </Button>
             <div className="space-y-1">
               <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={localTitle}
+                onChange={(e) => setLocalTitle(e.target.value)}
                 className="text-lg font-semibold border-none shadow-none p-0 h-auto focus-visible:ring-0"
                 placeholder="Document title..."
               />
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>Last saved: {lastSaved}</span>
+                <span>
+                  Last saved: {lastSaved 
+                    ? formatDistanceToNow(lastSaved, { addSuffix: true })
+                    : 'Never'
+                  }
+                </span>
                 <span>•</span>
-                <Badge variant={isPublic ? "secondary" : "outline"} className="text-xs">
-                  {isPublic ? (
+                <Badge variant={document.is_public ? "secondary" : "outline"} className="text-xs">
+                  {document.is_public ? (
                     <>
                       <Globe className="h-3 w-3 mr-1" />
                       Public
@@ -132,14 +221,20 @@ const DocumentEditor = () => {
               )}
             </div>
 
-            <Button variant="outline" onClick={handleShare}>
-              <Share className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+            <ShareDialog 
+              documentId={document.id}
+              isPublic={document.is_public}
+              onVisibilityChange={toggleVisibility}
+            >
+              <Button variant="outline">
+                <Share className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </ShareDialog>
 
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Saving..." : "Save"}
+              {saving ? "Saving..." : "Save"}
             </Button>
 
             <DropdownMenu>
@@ -149,8 +244,8 @@ const DocumentEditor = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-background" align="end">
-                <DropdownMenuItem onClick={handleToggleVisibility}>
-                  {isPublic ? (
+                <DropdownMenuItem onClick={toggleVisibility}>
+                  {document.is_public ? (
                     <>
                       <Lock className="mr-2 h-4 w-4" />
                       Make Private
@@ -162,10 +257,15 @@ const DocumentEditor = () => {
                     </>
                   )}
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <History className="mr-2 h-4 w-4" />
-                  Version History
-                </DropdownMenuItem>
+                <VersionHistoryDialog 
+                  documentId={document.id}
+                  onRestore={handleRestore}
+                >
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <History className="mr-2 h-4 w-4" />
+                    Version History
+                  </DropdownMenuItem>
+                </VersionHistoryDialog>
                 <DropdownMenuItem>
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
@@ -236,8 +336,8 @@ const DocumentEditor = () => {
         <Card className="min-h-[600px]">
           <CardContent className="p-6">
             <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              value={localContent}
+              onChange={(e) => setLocalContent(e.target.value)}
               placeholder="Start writing your document... Use @username to mention collaborators"
               className="w-full min-h-[550px] border-none outline-none resize-none text-base leading-relaxed"
               style={{ fontFamily: 'inherit' }}
@@ -248,9 +348,15 @@ const DocumentEditor = () => {
         {/* Status Bar */}
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">
-            <span>{content.length} characters</span>
+            <span>{localContent.length} characters</span>
             <span>•</span>
             <span>Auto-save enabled</span>
+            {saving && (
+              <>
+                <span>•</span>
+                <span>Saving...</span>
+              </>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
