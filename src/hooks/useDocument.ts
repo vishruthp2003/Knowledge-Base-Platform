@@ -46,18 +46,6 @@ export const useDocument = () => {
     try {
       setLoading(true);
       
-      // Check if user has permission to access this document
-      const { data: permissionData } = await supabase
-        .rpc('get_user_document_permission', {
-          doc_id: id,
-          user_id: user.id
-        });
-
-      if (permissionData === 'none') {
-        toast.error('You do not have permission to access this document');
-        return;
-      }
-
       const { data, error } = await supabase
         .from('documents')
         .select('*')
@@ -73,6 +61,31 @@ export const useDocument = () => {
         return;
       }
 
+      // Check permissions - if user is author, they have admin access
+      let userPermission = 'none';
+      if (data.author_id === user.id) {
+        userPermission = 'admin';
+      } else if (data.is_public) {
+        userPermission = 'read';
+      } else {
+        // Check if user has been shared access
+        const { data: shareData } = await supabase
+          .from('document_shares')
+          .select('permission')
+          .eq('document_id', id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (shareData) {
+          userPermission = shareData.permission;
+        }
+      }
+
+      if (userPermission === 'none') {
+        toast.error('You do not have permission to access this document');
+        return;
+      }
+
       // Get author information separately
       const { data: authorData } = await supabase
         .from('profiles')
@@ -83,7 +96,7 @@ export const useDocument = () => {
       setDocument({
         ...data,
         author: authorData || { full_name: 'Unknown', username: 'unknown' },
-        userPermission: permissionData
+        userPermission
       });
     } catch (error) {
       console.error('Error loading document:', error);
