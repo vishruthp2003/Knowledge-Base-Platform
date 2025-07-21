@@ -19,6 +19,7 @@ export interface Document {
     full_name: string;
     username: string;
   };
+  userPermission?: string;
 }
 
 export const useDocument = () => {
@@ -44,6 +45,19 @@ export const useDocument = () => {
 
     try {
       setLoading(true);
+      
+      // Check if user has permission to access this document
+      const { data: permissionData } = await supabase
+        .rpc('get_user_document_permission', {
+          doc_id: id,
+          user_id: user.id
+        });
+
+      if (permissionData === 'none') {
+        toast.error('You do not have permission to access this document');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('documents')
         .select('*')
@@ -68,7 +82,8 @@ export const useDocument = () => {
 
       setDocument({
         ...data,
-        author: authorData || { full_name: 'Unknown', username: 'unknown' }
+        author: authorData || { full_name: 'Unknown', username: 'unknown' },
+        userPermission: permissionData
       });
     } catch (error) {
       console.error('Error loading document:', error);

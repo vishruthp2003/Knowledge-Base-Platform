@@ -161,7 +161,7 @@ const DocumentEditor = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-4 w-4" />
@@ -172,6 +172,7 @@ const DocumentEditor = () => {
                 onChange={(e) => setLocalTitle(e.target.value)}
                 className="text-lg font-semibold border-none shadow-none p-0 h-auto focus-visible:ring-0"
                 placeholder="Document title..."
+                disabled={document.userPermission === 'read'}
               />
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>
@@ -198,9 +199,9 @@ const DocumentEditor = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            {/* Collaborators */}
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            {/* Collaborators - hidden on mobile */}
+            <div className="hidden md:flex items-center space-x-2">
               <div className="flex -space-x-2">
                 {collaborators.slice(0, 3).map((collaborator) => (
                   <Avatar key={collaborator.id} className="h-8 w-8 border-2 border-background">
@@ -226,15 +227,15 @@ const DocumentEditor = () => {
               isPublic={document.is_public}
               onVisibilityChange={toggleVisibility}
             >
-              <Button variant="outline">
-                <Share className="h-4 w-4 mr-2" />
-                Share
+              <Button variant="outline" size="sm">
+                <Share className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Share</span>
               </Button>
             </ShareDialog>
 
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? "Saving..." : "Save"}
+            <Button onClick={handleSave} disabled={saving || document.userPermission === 'read'} size="sm">
+              <Save className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">{saving ? "Saving..." : "Save"}</span>
             </Button>
 
             <DropdownMenu>
@@ -266,7 +267,27 @@ const DocumentEditor = () => {
                     Version History
                   </DropdownMenuItem>
                 </VersionHistoryDialog>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const previewWindow = window.open('', '_blank');
+                  if (previewWindow) {
+                    previewWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>${document.title}</title>
+                          <style>
+                            body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+                            h1 { border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+                          </style>
+                        </head>
+                        <body>
+                          <h1>${document.title}</h1>
+                          <div style="white-space: pre-wrap;">${localContent}</div>
+                        </body>
+                      </html>
+                    `);
+                    previewWindow.document.close();
+                  }
+                }}>
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
                 </DropdownMenuItem>
@@ -277,62 +298,64 @@ const DocumentEditor = () => {
       </header>
 
       {/* Editor Toolbar */}
-      <div className="border-b bg-muted/50 p-2">
-        <div className="container">
-          <div className="flex items-center space-x-1">
-            <div className="flex items-center space-x-1 mr-4">
-              <Button variant="ghost" size="sm">
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Italic className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Underline className="h-4 w-4" />
-              </Button>
-            </div>
+      {document.userPermission !== 'read' && (
+        <div className="border-b bg-muted/50 p-2">
+          <div className="container px-4 md:px-6">
+            <div className="flex items-center space-x-1 overflow-x-auto">
+              <div className="flex items-center space-x-1 mr-4">
+                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('bold')}>
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('italic')}>
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('underline')}>
+                  <Underline className="h-4 w-4" />
+                </Button>
+              </div>
 
-            <div className="flex items-center space-x-1 mr-4">
-              <Button variant="ghost" size="sm">
-                <AlignLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <AlignCenter className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <AlignRight className="h-4 w-4" />
-              </Button>
-            </div>
+              <div className="hidden sm:flex items-center space-x-1 mr-4">
+                <Button variant="ghost" size="sm">
+                  <AlignLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <AlignCenter className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <AlignRight className="h-4 w-4" />
+                </Button>
+              </div>
 
-            <div className="flex items-center space-x-1 mr-4">
-              <Button variant="ghost" size="sm">
-                <List className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <ListOrdered className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Quote className="h-4 w-4" />
-              </Button>
-            </div>
+              <div className="hidden md:flex items-center space-x-1 mr-4">
+                <Button variant="ghost" size="sm">
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Quote className="h-4 w-4" />
+                </Button>
+              </div>
 
-            <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="sm">
-                <Link className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Image className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Code className="h-4 w-4" />
-              </Button>
+              <div className="hidden lg:flex items-center space-x-1">
+                <Button variant="ghost" size="sm">
+                  <Link className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Image className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Code className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Editor Content */}
-      <main className="container py-6">
+      <main className="container py-6 px-4 md:px-6">
         <Card className="min-h-[600px]">
           <CardContent className="p-6">
             <textarea
@@ -341,6 +364,7 @@ const DocumentEditor = () => {
               placeholder="Start writing your document... Use @username to mention collaborators"
               className="w-full min-h-[550px] border-none outline-none resize-none text-base leading-relaxed"
               style={{ fontFamily: 'inherit' }}
+              disabled={document.userPermission === 'read'}
             />
           </CardContent>
         </Card>

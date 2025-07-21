@@ -17,7 +17,9 @@ import {
   SortAsc,
   Bell,
   Settings,
-  LogOut
+  LogOut,
+  Trash2,
+  MoreHorizontal
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,6 +32,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileSettings } from "@/components/ProfileSettings";
 
 interface Document {
   id: string;
@@ -91,16 +94,26 @@ const Dashboard = () => {
         return;
       }
 
-      // Transform data to match our interface
-      const transformedData = data?.map(doc => ({
-        ...doc,
-        author: {
-          full_name: 'User',
-          username: 'user'
-        }
-      })) || [];
+      // Get author information for each document
+      if (data && data.length > 0) {
+        const authorIds = [...new Set(data.map(doc => doc.author_id))];
+        const { data: authorsData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, username')
+          .in('user_id', authorIds);
 
-      setDocuments(transformedData);
+        const documentsWithAuthors = data.map(doc => ({
+          ...doc,
+          author: authorsData?.find(author => author.user_id === doc.author_id) || {
+            full_name: 'Unknown User',
+            username: 'unknown'
+          }
+        }));
+
+        setDocuments(documentsWithAuthors);
+      } else {
+        setDocuments([]);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -181,6 +194,44 @@ const Dashboard = () => {
     navigate(`/editor/${documentId}`);
   };
 
+  const handleDeleteDocument = async (documentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete document",
+        });
+        return;
+      }
+
+      toast({
+        title: "Document deleted",
+        description: "The document has been successfully deleted.",
+      });
+
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred",
+      });
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -224,7 +275,7 @@ const Dashboard = () => {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-bold text-primary">KnowledgeBase</h1>
-            <div className="relative w-96">
+            <div className="relative w-96 max-w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search documents, content, users..."
@@ -235,10 +286,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <Button onClick={handleCreateDocument} className="space-x-2">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <Button onClick={handleCreateDocument} className="space-x-2" size="sm">
               <Plus className="h-4 w-4" />
-              <span>New Document</span>
+              <span className="hidden sm:inline">New Document</span>
             </Button>
 
             <Button variant="ghost" size="icon">
@@ -264,10 +315,12 @@ const Dashboard = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
+                <ProfileSettings>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </ProfileSettings>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -359,7 +412,7 @@ const Dashboard = () => {
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex-1">
                         <CardTitle className="text-lg">{doc.title}</CardTitle>
                         <CardDescription>{doc.summary || 'No description'}</CardDescription>
                       </div>
@@ -375,14 +428,36 @@ const Dashboard = () => {
                             Private
                           </Badge>
                         )}
-                        <Badge variant="outline">v1.0</Badge>
+                        {doc.author_id === user?.id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-background">
+                              <DropdownMenuItem 
+                                onClick={(e) => handleDeleteDocument(doc.id, e)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <div className="flex items-center space-x-4">
-                        <span>By {doc.author.full_name}</span>
+                        <span>By {doc.author?.full_name || 'Unknown User'}</span>
                         <span>•</span>
                         <span>{formatDate(doc.updated_at)}</span>
                       </div>
