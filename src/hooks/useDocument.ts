@@ -137,7 +137,8 @@ export const useDocument = () => {
 
       setDocument({
         ...data,
-        author: authorData || { full_name: user.email || 'User', username: user.email?.split('@')[0] || 'user' }
+        author: authorData || { full_name: user.email || 'User', username: user.email?.split('@')[0] || 'user' },
+        userPermission: 'admin' // Author always has admin permission
       });
       // Update URL without triggering navigation
       window.history.replaceState(null, '', `/editor/${data.id}`);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,7 +31,8 @@ import {
   Image,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Edit
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDocument } from "@/hooks/useDocument";
@@ -44,6 +45,8 @@ const DocumentEditor = () => {
   const { document, loading, saving, lastSaved, saveDocument, toggleVisibility } = useDocument();
   const [localTitle, setLocalTitle] = useState("");
   const [localContent, setLocalContent] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Mock collaborators - you can implement real-time collaboration later
   const collaborators = [
@@ -79,6 +82,9 @@ const DocumentEditor = () => {
       } else {
         setLocalContent('');
       }
+      
+      // Set editing mode based on permissions
+      setIsEditing(document.userPermission === 'admin' || document.userPermission === 'write');
     }
   }, [document]);
 
@@ -133,6 +139,31 @@ const DocumentEditor = () => {
     }
   };
 
+  const insertTextAtCursor = (insertText: string, before = '', after = '') => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    const newText = localContent.substring(0, start) + 
+                   before + selectedText + after + 
+                   localContent.substring(end);
+    
+    setLocalContent(newText);
+    
+    // Reset cursor position
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, end + before.length);
+    }, 0);
+  };
+
+  const handleBold = () => insertTextAtCursor('', '**', '**');
+  const handleItalic = () => insertTextAtCursor('', '*', '*');
+  const handleUnderline = () => insertTextAtCursor('', '__', '__');
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -172,7 +203,7 @@ const DocumentEditor = () => {
                 onChange={(e) => setLocalTitle(e.target.value)}
                 className="text-lg font-semibold border-none shadow-none p-0 h-auto focus-visible:ring-0"
                 placeholder="Document title..."
-                disabled={document.userPermission === 'read'}
+                disabled={!isEditing}
               />
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>
@@ -200,6 +231,18 @@ const DocumentEditor = () => {
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-4">
+            {/* Edit button for users with write permission */}
+            {document.userPermission === 'write' && !isEditing && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Edit</span>
+              </Button>
+            )}
+
             {/* Collaborators - hidden on mobile */}
             <div className="hidden md:flex items-center space-x-2">
               <div className="flex -space-x-2">
@@ -233,7 +276,7 @@ const DocumentEditor = () => {
               </Button>
             </ShareDialog>
 
-            <Button onClick={handleSave} disabled={saving || document.userPermission === 'read'} size="sm">
+            <Button onClick={handleSave} disabled={saving || !isEditing} size="sm">
               <Save className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">{saving ? "Saving..." : "Save"}</span>
             </Button>
@@ -298,18 +341,18 @@ const DocumentEditor = () => {
       </header>
 
       {/* Editor Toolbar */}
-      {document.userPermission !== 'read' && (
+      {isEditing && (
         <div className="border-b bg-muted/50 p-2">
           <div className="container px-4 md:px-6">
             <div className="flex items-center space-x-1 overflow-x-auto">
               <div className="flex items-center space-x-1 mr-4">
-                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('bold')}>
+                <Button variant="ghost" size="sm" onClick={handleBold}>
                   <Bold className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('italic')}>
+                <Button variant="ghost" size="sm" onClick={handleItalic}>
                   <Italic className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => window.document.execCommand('underline')}>
+                <Button variant="ghost" size="sm" onClick={handleUnderline}>
                   <Underline className="h-4 w-4" />
                 </Button>
               </div>
@@ -359,12 +402,13 @@ const DocumentEditor = () => {
         <Card className="min-h-[600px]">
           <CardContent className="p-6">
             <textarea
+              ref={textareaRef}
               value={localContent}
               onChange={(e) => setLocalContent(e.target.value)}
               placeholder="Start writing your document... Use @username to mention collaborators"
               className="w-full min-h-[550px] border-none outline-none resize-none text-base leading-relaxed"
               style={{ fontFamily: 'inherit' }}
-              disabled={document.userPermission === 'read'}
+              disabled={!isEditing}
             />
           </CardContent>
         </Card>
