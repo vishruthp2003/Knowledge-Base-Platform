@@ -156,13 +156,54 @@ const DocumentEditor = () => {
     // Reset cursor position
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + before.length, end + before.length);
+      textarea.setSelectionRange(start + before.length, end + before.length + selectedText.length);
     }, 0);
   };
 
-  const handleBold = () => insertTextAtCursor('', '**', '**');
-  const handleItalic = () => insertTextAtCursor('', '*', '*');
-  const handleUnderline = () => insertTextAtCursor('', '__', '__');
+  const handleBold = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      insertTextAtCursor('', '**', '**');
+    } else {
+      insertTextAtCursor('**bold text**');
+    }
+  };
+
+  const handleItalic = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      insertTextAtCursor('', '*', '*');
+    } else {
+      insertTextAtCursor('*italic text*');
+    }
+  };
+
+  const handleUnderline = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      insertTextAtCursor('', '__', '__');
+    } else {
+      insertTextAtCursor('__underlined text__');
+    }
+  };
 
   if (loading) {
     return (
@@ -231,16 +272,24 @@ const DocumentEditor = () => {
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Edit button for users with write permission */}
-            {document.userPermission === 'write' && !isEditing && (
+            {/* Edit button for users with write permission who are not the author */}
+            {(document.userPermission === 'write') && !isEditing && (
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setIsEditing(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Edit className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Edit</span>
+                <span className="hidden md:inline">Edit Document</span>
               </Button>
+            )}
+
+            {/* Show permission status for debugging */}
+            {document.userPermission === 'write' && (
+              <Badge variant="secondary" className="text-xs">
+                Write Access
+              </Badge>
             )}
 
             {/* Collaborators - hidden on mobile */}

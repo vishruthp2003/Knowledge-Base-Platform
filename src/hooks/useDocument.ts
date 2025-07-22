@@ -74,7 +74,7 @@ export const useDocument = () => {
           .select('permission')
           .eq('document_id', id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (shareData) {
           userPermission = shareData.permission;
