@@ -102,19 +102,28 @@ export const ShareDialog = ({ documentId, isPublic, onVisibilityChange, children
     try {
       setLoading(true);
 
-      // First, find the user by email
+      // First, find the user by email or username
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, full_name, username')
-        .ilike('username', email.trim()) // Assuming username is email-like
-        .limit(1);
+        .or(`username.ilike.%${email.trim()}%,full_name.ilike.%${email.trim()}%`)
+        .limit(5);
 
-      if (profileError || !profiles || profiles.length === 0) {
-        toast.error('User not found');
+      if (profileError) {
+        console.error('Profile search error:', profileError);
+        toast.error('Error searching for user');
         return;
       }
 
-      const targetUser = profiles[0];
+      if (!profiles || profiles.length === 0) {
+        toast.error('User not found. Please check the username or email.');
+        return;
+      }
+
+      // If multiple users found, use exact match first
+      let targetUser = profiles.find(p => 
+        p.username.toLowerCase() === email.trim().toLowerCase()
+      ) || profiles[0];
 
       // Check if already shared
       const existingShare = shares.find(share => share.user_id === targetUser.user_id);

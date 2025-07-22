@@ -90,7 +90,7 @@ const DocumentEditor = () => {
 
   // Auto-save functionality
   useEffect(() => {
-    if (!document || saving) return;
+    if (!document || saving || !isEditing) return;
 
     const autoSaveTimer = setTimeout(() => {
       if (localTitle !== document.title || localContent !== (typeof document.content === 'string' ? document.content : '')) {
@@ -99,7 +99,7 @@ const DocumentEditor = () => {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(autoSaveTimer);
-  }, [localTitle, localContent, document, saving]);
+  }, [localTitle, localContent, document, saving, isEditing]);
 
   const handleSave = async () => {
     if (!document) return;
@@ -139,7 +139,7 @@ const DocumentEditor = () => {
     }
   };
 
-  const insertTextAtCursor = (insertText: string, before = '', after = '') => {
+  const insertTextAtCursor = (text: string, wrapBefore = '', wrapAfter = '') => {
     if (!textareaRef.current) return;
     
     const textarea = textareaRef.current;
@@ -147,16 +147,29 @@ const DocumentEditor = () => {
     const end = textarea.selectionEnd;
     const selectedText = localContent.substring(start, end);
     
-    const newText = localContent.substring(0, start) + 
-                   before + selectedText + after + 
-                   localContent.substring(end);
+    let newText;
+    let newCursorPos;
+    
+    if (selectedText) {
+      // Wrap selected text
+      newText = localContent.substring(0, start) + 
+                wrapBefore + selectedText + wrapAfter + 
+                localContent.substring(end);
+      newCursorPos = end + wrapBefore.length + wrapAfter.length;
+    } else {
+      // Insert text at cursor
+      newText = localContent.substring(0, start) + 
+                text + 
+                localContent.substring(end);
+      newCursorPos = start + text.length;
+    }
     
     setLocalContent(newText);
     
     // Reset cursor position
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + before.length, end + before.length + selectedText.length);
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
 
@@ -184,9 +197,9 @@ const DocumentEditor = () => {
     const selectedText = localContent.substring(start, end);
     
     if (selectedText) {
-      insertTextAtCursor('', '*', '*');
+      insertTextAtCursor('', '_', '_');
     } else {
-      insertTextAtCursor('*italic text*');
+      insertTextAtCursor('_italic text_');
     }
   };
 
@@ -199,9 +212,9 @@ const DocumentEditor = () => {
     const selectedText = localContent.substring(start, end);
     
     if (selectedText) {
-      insertTextAtCursor('', '__', '__');
+      insertTextAtCursor('', '<u>', '</u>');
     } else {
-      insertTextAtCursor('__underlined text__');
+      insertTextAtCursor('<u>underlined text</u>');
     }
   };
 
@@ -272,23 +285,28 @@ const DocumentEditor = () => {
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-4">
+            {/* Debug permissions */}
+            <div className="hidden md:flex text-xs text-muted-foreground">
+              Permission: {document.userPermission || 'none'}
+            </div>
+
             {/* Edit button for users with write permission who are not the author */}
             {(document.userPermission === 'write') && !isEditing && (
               <Button 
-                variant="outline" 
+                variant="default" 
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-green-600 text-white hover:bg-green-700"
               >
                 <Edit className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Edit Document</span>
               </Button>
             )}
 
-            {/* Show permission status for debugging */}
-            {document.userPermission === 'write' && (
-              <Badge variant="secondary" className="text-xs">
-                Write Access
+            {/* Show editing status */}
+            {isEditing && (
+              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                Editing Mode
               </Badge>
             )}
 
