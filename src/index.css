@@ -112,4 +112,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide Lovable badge */
+  iframe[src*="lovable"] {
+    display: none !important;
+  }
+  
+  div[class*="lovable"], 
+  a[href*="lovable"],
+  button[class*="lovable"],
+  [data-lovable],
+  .lovable-badge,
+  *[class*="edit"][class*="lovable"] {
+    display: none !important;
+  }
 }
