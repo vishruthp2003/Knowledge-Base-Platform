@@ -221,7 +221,11 @@ const DocumentEditor = () => {
       const newText = localContent.substring(0, start) + bulletLines + localContent.substring(end);
       setLocalContent(newText);
     } else {
-      insertTextAtCursor('• List item');
+      // Add line break before if not at start of line
+      const textBefore = localContent.substring(0, start);
+      const needsLineBreak = textBefore.length > 0 && !textBefore.endsWith('\n');
+      const prefix = needsLineBreak ? '\n• ' : '• ';
+      insertTextAtCursor(prefix + 'List item');
     }
   };
 
@@ -239,7 +243,11 @@ const DocumentEditor = () => {
       const newText = localContent.substring(0, start) + numberedLines + localContent.substring(end);
       setLocalContent(newText);
     } else {
-      insertTextAtCursor('1. List item');
+      // Add line break before if not at start of line
+      const textBefore = localContent.substring(0, start);
+      const needsLineBreak = textBefore.length > 0 && !textBefore.endsWith('\n');
+      const prefix = needsLineBreak ? '\n1. ' : '1. ';
+      insertTextAtCursor(prefix + 'List item');
     }
   };
 
@@ -257,7 +265,11 @@ const DocumentEditor = () => {
       const newText = localContent.substring(0, start) + quotedLines + localContent.substring(end);
       setLocalContent(newText);
     } else {
-      insertTextAtCursor('> Quote text');
+      // Add line break before if not at start of line
+      const textBefore = localContent.substring(0, start);
+      const needsLineBreak = textBefore.length > 0 && !textBefore.endsWith('\n');
+      const prefix = needsLineBreak ? '\n> ' : '> ';
+      insertTextAtCursor(prefix + 'Quote text');
     }
   };
 
