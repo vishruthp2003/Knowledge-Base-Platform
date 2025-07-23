@@ -88,18 +88,7 @@ const DocumentEditor = () => {
     }
   }, [document]);
 
-  // Auto-save functionality
-  useEffect(() => {
-    if (!document || saving || !isEditing) return;
-
-    const autoSaveTimer = setTimeout(() => {
-      if (localTitle !== document.title || localContent !== (typeof document.content === 'string' ? document.content : '')) {
-        handleSave();
-      }
-    }, 2000); // Auto-save after 2 seconds of inactivity
-
-    return () => clearTimeout(autoSaveTimer);
-  }, [localTitle, localContent, document, saving, isEditing]);
+  // Auto-save disabled to prevent version history clutter
 
   const handleSave = async () => {
     if (!document) return;
@@ -485,7 +474,7 @@ const DocumentEditor = () => {
           <div className="flex items-center space-x-4">
             <span>{localContent.length} characters</span>
             <span>•</span>
-            <span>Auto-save enabled</span>
+            <span>Manual save only</span>
             {saving && (
               <>
                 <span>•</span>
