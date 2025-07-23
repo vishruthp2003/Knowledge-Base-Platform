@@ -102,22 +102,16 @@ The Supabase database is already set up with the following tables:
 For testing purposes, you can use these demo accounts:
 
 ### Demo User 1
-- **Email**: demo1@example.com
-- **Password**: demo123456
+- **Email**: demo1@gmail.com
+- **Password**: demo123
+- **Role**: Document Editor
+
+
+### Admin
+- **Email**: admin@gmail.com
+- **Password**: admin123
 - **Role**: Document Creator
-- **Features**: Can create, edit, and share documents
 
-### Demo User 2
-- **Email**: demo2@example.com
-- **Password**: demo123456
-- **Role**: Collaborator
-- **Features**: Can view and edit shared documents
-
-### Demo User 3 (Admin)
-- **Email**: admin@example.com
-- **Password**: admin123456
-- **Role**: Administrator
-- **Features**: Full access to all documents and user management
 
 *Note: These are demo accounts for testing purposes. In a production environment, use proper authentication and secure passwords.*
 
@@ -184,20 +178,3 @@ The built application is a standard React SPA that can be deployed to:
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
-
-## Support
-
-For support and questions:
-- Check the documentation at [Lovable Docs](https://docs.lovable.dev/)
-- Join our [Discord community](https://discord.com/channels/1119885301872070706/1280461670979993613)
-- Review the [FAQ](https://docs.lovable.dev/faq)
-
-## License
-
-This project is built with Lovable and follows standard web development practices. Please refer to your organization's licensing requirements for production use.
-
----
-
-**Project URL**: https://lovable.dev/projects/3d7a49c2-4221-4942-8808-52f192fe2f21
-
-Built with ❤️ using [Lovable](https://lovable.dev)
