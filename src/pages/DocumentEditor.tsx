@@ -139,12 +139,12 @@ const DocumentEditor = () => {
     let newText;
     let newCursorPos;
     
-    if (selectedText) {
+    if (selectedText && wrapBefore && wrapAfter) {
       // Wrap selected text
       newText = localContent.substring(0, start) + 
                 wrapBefore + selectedText + wrapAfter + 
                 localContent.substring(end);
-      newCursorPos = end + wrapBefore.length + wrapAfter.length;
+      newCursorPos = start + wrapBefore.length + selectedText.length + wrapAfter.length;
     } else {
       // Insert text at cursor
       newText = localContent.substring(0, start) + 
@@ -186,9 +186,9 @@ const DocumentEditor = () => {
     const selectedText = localContent.substring(start, end);
     
     if (selectedText) {
-      insertTextAtCursor('', '_', '_');
+      insertTextAtCursor('', '*', '*');
     } else {
-      insertTextAtCursor('_italic text_');
+      insertTextAtCursor('*italic text*');
     }
   };
 
@@ -205,6 +205,101 @@ const DocumentEditor = () => {
     } else {
       insertTextAtCursor('<u>underlined text</u>');
     }
+  };
+
+  const handleBulletList = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      const lines = selectedText.split('\n');
+      const bulletLines = lines.map(line => line.trim() ? `• ${line}` : line).join('\n');
+      const newText = localContent.substring(0, start) + bulletLines + localContent.substring(end);
+      setLocalContent(newText);
+    } else {
+      insertTextAtCursor('• List item');
+    }
+  };
+
+  const handleNumberedList = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      const lines = selectedText.split('\n');
+      const numberedLines = lines.map((line, index) => line.trim() ? `${index + 1}. ${line}` : line).join('\n');
+      const newText = localContent.substring(0, start) + numberedLines + localContent.substring(end);
+      setLocalContent(newText);
+    } else {
+      insertTextAtCursor('1. List item');
+    }
+  };
+
+  const handleQuote = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      const lines = selectedText.split('\n');
+      const quotedLines = lines.map(line => line.trim() ? `> ${line}` : line).join('\n');
+      const newText = localContent.substring(0, start) + quotedLines + localContent.substring(end);
+      setLocalContent(newText);
+    } else {
+      insertTextAtCursor('> Quote text');
+    }
+  };
+
+  const handleCode = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      if (selectedText.includes('\n')) {
+        insertTextAtCursor('', '```\n', '\n```');
+      } else {
+        insertTextAtCursor('', '`', '`');
+      }
+    } else {
+      insertTextAtCursor('`code`');
+    }
+  };
+
+  const handleLink = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = localContent.substring(start, end);
+    
+    if (selectedText) {
+      insertTextAtCursor('', '[', '](https://example.com)');
+    } else {
+      insertTextAtCursor('[link text](https://example.com)');
+    }
+  };
+
+  const handleImage = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    insertTextAtCursor('![alt text](https://example.com/image.jpg)');
   };
 
   if (loading) {
@@ -426,25 +521,25 @@ const DocumentEditor = () => {
               </div>
 
               <div className="hidden md:flex items-center space-x-1 mr-4">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleBulletList}>
                   <List className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleNumberedList}>
                   <ListOrdered className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleQuote}>
                   <Quote className="h-4 w-4" />
                 </Button>
               </div>
 
               <div className="hidden lg:flex items-center space-x-1">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleLink}>
                   <Link className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleImage}>
                   <Image className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleCode}>
                   <Code className="h-4 w-4" />
                 </Button>
               </div>
