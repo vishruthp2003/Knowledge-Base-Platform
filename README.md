@@ -102,14 +102,14 @@ The Supabase database is already set up with the following tables:
 For testing purposes, you can use these demo accounts:
 
 ### Demo User 1
-- **Email**: demo1@gmail.com
-- **Password**: demo123
+- **Email**: demo@gmail.com
+- **Password**: Demo@123
 - **Role**: Document Editor
 
 
 ### Admin
 - **Email**: admin@gmail.com
-- **Password**: admin123
+- **Password**: Admin@123
 - **Role**: Document Creator
 
 
