@@ -121,13 +121,12 @@ For testing purposes, you can use these demo accounts:
 1. Login to your account
 2. Click "New Document" on the dashboard
 3. Start typing to create content
-4. Documents auto-save as you type
 
 ### Sharing Documents
 1. Open any document you own
 2. Click the "Share" button
 3. Add collaborators by email
-4. Set permissions (read/write/admin)
+4. Set permissions (read/write)
 
 ### Version History
 1. Open any document
@@ -156,20 +155,6 @@ npm run preview
 # Run type checking
 npm run type-check
 ```
-
-## Deployment
-
-### Deploy to Lovable (Recommended)
-1. Open your project in Lovable
-2. Click "Share" → "Publish"
-3. Your app will be deployed automatically
-
-### Deploy to Other Platforms
-The built application is a standard React SPA that can be deployed to:
-- Vercel
-- Netlify
-- AWS S3 + CloudFront
-- Any static hosting service
 
 ## Contributing
 
