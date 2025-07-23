@@ -1,73 +1,203 @@
-# Welcome to your Lovable project
 
-## Project info
+# Knowledge Base Platform
 
-**URL**: https://lovable.dev/projects/3d7a49c2-4221-4942-8808-52f192fe2f21
+A collaborative document editing platform built with React, TypeScript, and Supabase. This platform allows users to create, edit, and share documents with real-time collaboration features.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **User Authentication**: Secure login and registration system
+- **Document Management**: Create, edit, and organize documents
+- **Real-time Collaboration**: Multiple users can edit documents simultaneously
+- **Version History**: Track changes and restore previous versions
+- **Document Sharing**: Share documents with other users with different permission levels
+- **Profile Management**: User profiles with customizable information
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-**Use Lovable**
+## Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3d7a49c2-4221-4942-8808-52f192fe2f21) and start prompting.
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Authentication, Real-time)
+- **Bundler**: Vite
+- **UI Components**: shadcn/ui, Radix UI
+- **State Management**: React Query (TanStack Query)
+- **Routing**: React Router DOM
+- **Styling**: Tailwind CSS with custom design tokens
 
-Changes made via Lovable will be committed automatically to this repo.
+## Architecture
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Frontend Architecture
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── ProfileSettings.tsx
+│   ├── ProtectedRoute.tsx
+│   └── ...
+├── contexts/           # React contexts
+│   └── AuthContext.tsx # Authentication state management
+├── hooks/              # Custom React hooks
+│   └── useDocument.ts  # Document management logic
+├── pages/              # Page components
+│   ├── Auth.tsx        # Authentication page
+│   ├── Dashboard.tsx   # User dashboard
+│   ├── DocumentEditor.tsx # Document editing interface
+│   └── ...
+├── integrations/       # Third-party integrations
+│   └── supabase/       # Supabase client and types
+└── lib/                # Utility functions
 ```
 
-**Edit a file directly in GitHub**
+### Backend Architecture (Supabase)
+- **Database**: PostgreSQL with Row Level Security (RLS)
+- **Authentication**: Built-in Supabase Auth
+- **Real-time**: Supabase Realtime for live collaboration
+- **Storage**: File storage for avatars and attachments
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Key Database Tables
+- `profiles`: User profile information
+- `documents`: Document metadata and content
+- `document_shares`: Document sharing permissions
+- `document_versions`: Version history tracking
 
-**Use GitHub Codespaces**
+## Setup Instructions
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn package manager
+- Supabase account (for backend services)
 
-## What technologies are used for this project?
+### Local Development Setup
 
-This project is built with:
+1. **Clone the repository**
+   ```bash
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
+   ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## How can I deploy this project?
+3. **Environment Setup**
+   The project is pre-configured to work with the included Supabase instance. No additional environment variables are needed for basic functionality.
 
-Simply open [Lovable](https://lovable.dev/projects/3d7a49c2-4221-4942-8808-52f192fe2f21) and click on Share -> Publish.
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-## Can I connect a custom domain to my Lovable project?
+5. **Open your browser**
+   Navigate to `http://localhost:5173` to view the application.
 
-Yes, you can!
+### Database Setup (Already Configured)
+The Supabase database is already set up with the following tables:
+- User profiles and authentication
+- Document management system
+- Sharing and permissions
+- Version history tracking
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Demo Accounts
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For testing purposes, you can use these demo accounts:
+
+### Demo User 1
+- **Email**: demo1@example.com
+- **Password**: demo123456
+- **Role**: Document Creator
+- **Features**: Can create, edit, and share documents
+
+### Demo User 2
+- **Email**: demo2@example.com
+- **Password**: demo123456
+- **Role**: Collaborator
+- **Features**: Can view and edit shared documents
+
+### Demo User 3 (Admin)
+- **Email**: admin@example.com
+- **Password**: admin123456
+- **Role**: Administrator
+- **Features**: Full access to all documents and user management
+
+*Note: These are demo accounts for testing purposes. In a production environment, use proper authentication and secure passwords.*
+
+## Key Features Guide
+
+### Document Creation
+1. Login to your account
+2. Click "New Document" on the dashboard
+3. Start typing to create content
+4. Documents auto-save as you type
+
+### Sharing Documents
+1. Open any document you own
+2. Click the "Share" button
+3. Add collaborators by email
+4. Set permissions (read/write/admin)
+
+### Version History
+1. Open any document
+2. Click "Version History"
+3. Browse previous versions
+4. Restore any version if needed
+
+### Profile Management
+1. Click on your profile avatar
+2. Select "Settings"
+3. Update your profile information
+4. Change avatar and bio
+
+## Development Commands
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run type checking
+npm run type-check
+```
+
+## Deployment
+
+### Deploy to Lovable (Recommended)
+1. Open your project in Lovable
+2. Click "Share" → "Publish"
+3. Your app will be deployed automatically
+
+### Deploy to Other Platforms
+The built application is a standard React SPA that can be deployed to:
+- Vercel
+- Netlify
+- AWS S3 + CloudFront
+- Any static hosting service
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## Support
+
+For support and questions:
+- Check the documentation at [Lovable Docs](https://docs.lovable.dev/)
+- Join our [Discord community](https://discord.com/channels/1119885301872070706/1280461670979993613)
+- Review the [FAQ](https://docs.lovable.dev/faq)
+
+## License
+
+This project is built with Lovable and follows standard web development practices. Please refer to your organization's licensing requirements for production use.
+
+---
+
+**Project URL**: https://lovable.dev/projects/3d7a49c2-4221-4942-8808-52f192fe2f21
+
+Built with ❤️ using [Lovable](https://lovable.dev)
